@@ -32,86 +32,125 @@ def standard_normal_table():
     return std
 
 
+def to_col(col):
+    return ' +{:.2f}'.format(col).ljust(7, ' ')
+
+
 def to_header(pf):
     pf.index = pf.index.astype(str)
-    pf.columns = [' +{:.2f}'.format(column).ljust(7, ' ') for column in pf.columns]
+    pf.columns = [to_col(column) for column in pf.columns]
 
 
-def to_cumulative_from_mean_0_to_Z():
-    print('''
-Cumulative from mean (0 to Z) ref: https://en.wikipedia.org/wiki/Standard_normal_table
-This table gives a probability that a statistic is between 0 (the mean) and Z.
-
-f(z) = Φ(z) = - 1/2
-
-Note that for z = 1, 2, 3, one obtains (after multiplying by 2 to account for the [-z,z] interval) the results
-f(z) = 0.6827, 0.9545, 0.9974, characteristic of the 68–95–99.7 rule.
-    ''')
-
-    cumulative = standard_normal_table()
-
-    for index in cumulative.index:
-        for column in cumulative.columns:
-            z = np.round(index + column, 2)
-            value, _ = quad(normalProbabilityDensity, np.NINF, z)
-            cumulative.loc[index, column] = '{:.5f}'.format(value - 1.0 / 2)
-
-    to_header(cumulative)
-
-    print(cumulative)
+def to_format(value):
+    return '{:.5f}'.format(value)
 
 
-to_cumulative_from_mean_0_to_Z()
-
-
-def to_cumulative():
-    print('''
+doc = [
+    '''
 Cumulative ref: https://en.wikipedia.org/wiki/Standard_normal_table
 
 Φ(z) is related to the error function, or erf(z).
 
 This table gives a probability that a statistic is less than Z (i.e. between negative infinity and Z).
-    ''')
+''',
 
-    cumulative = standard_normal_table()
+    '''
+Cumulative from mean (0 to Z) ref: https://en.wikipedia.org/wiki/Standard_normal_table
+This table gives a probability that a statistic is between 0 (the mean) and Z.
 
-    for index in cumulative.index:
-        for column in cumulative.columns:
-            z = np.round(index + column, 2)
-            value, _ = quad(normalProbabilityDensity, np.NINF, z)
-            cumulative.loc[index, column] = '{:.5f}'.format(value)
+f(z) = Φ(z) - 1/2
 
-    to_header(cumulative)
-
-    print(cumulative)
+Note that for z = 1, 2, 3, one obtains (after multiplying by 2 to account for the [-z,z] interval) the results
+f(z) = 0.6827, 0.9545, 0.9974, characteristic of the 68–95–99.7 rule.
+''',
 
 
-to_cumulative()
-
-
-def to_Complementary_cumulative():
-    print('''
+    '''
 Complementary cumulative ref: https://en.wikipedia.org/wiki/Standard_normal_table
 
 This table gives a probability that a statistic is greater than Z.
 
-f(z) = 1- Φ(z)
-    ''')
+f(z) = 1 - Φ(z)
+'''
+]
 
+cumulative_type = [
+    [1, 'Cumulative from mean 0 to Z'],
+    [0, 'Cumulative', ],
+    [2, 'Complementary cumulative', ],
+]
+
+
+def to_cumulative(case=0, to_print=False):
     cumulative = standard_normal_table()
 
     for index in cumulative.index:
         for column in cumulative.columns:
+            # print([index, column])
             z = np.round(index + column, 2)
             value, _ = quad(normalProbabilityDensity, np.NINF, z)
-            cumulative.loc[index, column] = '{:.5f}'.format(1 - value)
+
+            if case == 0:
+                v = value
+            elif case == 1:
+                v = value - 1.0 / 2
+            elif case == 2:
+                v = 1 - value
+            else:
+                raise Exception('Unkown case!')
+
+            cumulative.loc[index, column] = to_format(v) if to_print else v
 
     to_header(cumulative)
 
-    print(cumulative)
+    if to_print:
+        print(doc[case])
+
+        print(cumulative)
+
+    return cumulative
 
 
-to_Complementary_cumulative()
+def p(df, z):
+    z_10 = z * 10
+    row = int(z_10)
+    col = (z_10 - row) / 10.0
+    row = str(row / 10.0)
+    col = to_col(col)
+
+    return float(df.loc[row, col])
+
+
+def rule_68_95_99_7_rule(df=None):
+    if not df:
+        df = to_cumulative(1, False)
+
+    '''
+    Note that for z = 1, 2, 3, one obtains (after multiplying by 2 to account for the [-z,z]
+    interval) the results f(z) = 0.6827, 0.9545, 0.9974, characteristic of the 68–95–99.7 rule
+    '''
+    d = {
+        '68–95–99.7 rule': [
+            p(df, 1.0) * 2,
+            p(df, 2.0) * 2,
+            p(df, 3.0) * 2,
+        ]}
+#     print(d)
+    return d
+
+
+if __name__ == '__main__':
+    r = rule_68_95_99_7_rule()
+    print(r)
+
+    for e in cumulative_type:
+        print('\n\n#%s %s' % (e[0], e[1]))
+
+        df = to_cumulative(e[0], True)
+
+#         if e[0] == 1:
+#             r = rule_68_95_99_7_rule(df)
+#             print(r)
 
 '''
 
