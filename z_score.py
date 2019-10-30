@@ -124,11 +124,19 @@ def z_score_to_index_column(df, z):
 
     # https://goodcalculators.com/p-value-calculator/
     return [
-        {'Left-tailed p-value:  P(Z < z) = ': df.loc[row, col]},
-        {'Right-tailed p-value: P(Z > z) = ': 1 - df.loc[row, col]},
-        {'Two-tailed p-value: 2P(Z > |z|) = ': 2 * (1 - df.loc[row, col])},
+        {'Left-tailed p-value:  P(Z < z) = ': f16(df.loc[row, col])},
+        {'Right-tailed p-value: P(Z > z) = ': f16(1 - df.loc[row, col])},
+        {'Two-tailed p-value: 2P(Z > |z|) = ': f16(2 * (1 - df.loc[row, col]))},
 
     ]
+
+
+def f(z):
+    return '{:1.2f}'.format(z)
+
+
+def f16(z):
+    return '{:1.2f}'.format(z)
 
 
 if __name__ == '__main__':
@@ -137,12 +145,12 @@ if __name__ == '__main__':
 
     pa = z_score_to_index_column(df, A_z_score)
 
-    print([A_z_score, pa])
+    print([f(A_z_score), pa])
 
     pa = z_score_to_index_column(df, B_z_score)
 
-    print([B_z_score, pa])
+    print([f(B_z_score), pa])
 
     for z in [1.6, 1.65, 1.96, 2.58]:
         p = z_score_to_index_column(df, z)
-        print([z, p])
+        print([f(z), p])
