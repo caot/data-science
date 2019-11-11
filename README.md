@@ -13,3 +13,6 @@ An Introduction to the Science of Statistics:From Theory to ImplementationPrelim
 	https://www.math.arizona.edu/~jwatkins/statbook.pdf
 
 Introduction to Statistics http://onlinestatbook.com/Online_Statistics_Education.pdf
+
+# NumPy for R (and S-Plus) users
+http://mathesaurus.sourceforge.net/r-numpy.html
