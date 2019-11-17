@@ -43,15 +43,19 @@ from numpy import inf
 from scipy.stats import expon
 from numpy.random import beta, standard_normal
 from scipy.stats import binom, norm, lognorm
-# from scipy.stats.rv_continuous import rvs
-import matplotlib.pyplot as plt
+from scipy.stats import pareto
+from matplotlib import colors as mcolors
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import statistics
 
-from scipy.stats import pareto
-from matplotlib import colors as mcolors
+import os
+os.environ['R_HOME'] = '/anaconda3/lib/R'
+
+import rpy2.robjects as robjects
+
 
 colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
 
@@ -90,8 +94,15 @@ size = 100
 The location (loc) keyword specifies the mean.
 The scale (scale) keyword specifies the standard deviation.
 '''
-np.random.seed(seed=110)
-randomSample = norm.rvs(size=size, loc=trueMu, scale=trueSig)
+# np.random.seed(seed=110)
+# randomSample = norm.rvs(size=size, loc=trueMu, scale=trueSig)
+data = robjects.r("""
+trueMu <- 5
+trueSig <- 2
+set.seed(100)
+randomSample <- rnorm(100, trueMu, trueSig)
+""")
+randomSample = np.array(data)
 print(['max:', max(randomSample), 'min:', min(randomSample)])
 
 np.random.seed(seed=100)
@@ -173,9 +184,9 @@ prob <- exp(prod - max(prod))
 
 prob = np.exp(prod - max(prod))
 
-print(prob)
-print(['sum(prob)', sum(prob)])
-print([max(prod), min(prod)])
+# print(prob)
+print(['sum(prob): ', sum(prob), 'len(prob): ', len(prob)])
+print(['max(prod): ', max(prod), 'min(prod): ', min(prod)])
 
 '''
 # Sample from posterior dist of mu and sigma, plot
@@ -198,10 +209,39 @@ TypeError: 'float' object cannot be interpreted as an integer
 <class 'int'>
 '''
 # postSample = np.random.choice(list(range(len(grid))), size=1e3, replace=True) # TypeError: 'float' object cannot be interpreted as an integer
-postSample = np.random.choice(list(range(len(grid))), size=1000, replace=True, p=prob / prob.sum())
+# postSample = np.random.choice(list(range(len(grid))), size=1000, replace=True, p=prob / prob.sum())
+
+data = robjects.r("""
+trueMu <- 5
+trueSig <- 2
+set.seed(100)
+randomSample <- rnorm(100, trueMu, trueSig)
+
+# Grid approximation, mu %in% [0, 10] and sigma %in% [1, 3]
+grid <- expand.grid(mu = seq(0, 10, length.out = 200),
+sigma = seq(1, 3, length.out = 200))
+
+# Compute likelihood
+lik <- sapply(1:nrow(grid), function(x){
+sum(dnorm(x = randomSample, mean = grid$mu[x],
+sd = grid$sigma[x], log = T))
+})
+
+# Multiply (sum logs) likelihood and priors
+prod <- lik + dnorm(grid$mu, mean = 0, sd = 5, log = T) +
+dexp(grid$sigma, 1, log = T)
+
+# Standardize the lik x prior products to sum up to 1, recover unit
+prob <- exp(prod - max(prod))
+
+# Sample from posterior dist of mu and sigma, plot
+postSample <- sample(1:nrow(grid), size = 1e3, prob = prob)
+
+""")
+postSample = np.array(data)
 
 # print(postSample)
-print([max(postSample), min(postSample)])
+print(['max(postSample): ', max(postSample), 'min(postSample): ', min(postSample)])
 
 plt.title("Bayesian Statistics")
 
