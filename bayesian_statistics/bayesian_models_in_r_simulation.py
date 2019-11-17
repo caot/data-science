@@ -39,8 +39,10 @@ qnorm(lower.tail = FALSE)   isf()     CCDF inverse or inverse survival function
 rnorm()                     rvs()     Random samples
 '''
 
+from numpy import inf
+from scipy.stats import expon
 from numpy.random import beta, standard_normal
-from scipy.stats import binom, norm
+from scipy.stats import binom, norm, lognorm
 # from scipy.stats.rv_continuous import rvs
 import matplotlib.pyplot as plt
 
@@ -90,6 +92,7 @@ The scale (scale) keyword specifies the standard deviation.
 '''
 np.random.seed(seed=100)
 randomSample = norm.rvs(size=size, loc=trueMu, scale=trueSig)
+print([max(randomSample), min(randomSample)])
 
 np.random.seed(seed=100)
 randomSample02 = norm.rvs(size=size, loc=trueMu, scale=trueSig)
@@ -116,3 +119,105 @@ sigma = np.linspace(1, 3, 200)
 grid = np.array(np.meshgrid(mu, sigma)).reshape(2, 200 * 200).T
 
 print(grid)
+
+
+'''
+# Compute likelihood
+lik <- sapply(1:nrow(grid), function(x){
+sum(dnorm(x = randomSample, mean = grid$mu[x],
+sd = grid$sigma[x], log = T))
+})
+'''
+
+
+def function(x):
+    '''
+    The location (loc) keyword specifies the mean.
+    The scale (scale) keyword specifies the standard deviation.
+
+    x : array_like
+            quantiles
+    '''
+    npdf = norm.pdf(randomSample, loc=x[0], scale=x[1])
+
+#     npdf[npdf == -inf] = 1
+#     npdf[npdf == inf] = 1
+
+    npdf = np.log(npdf)
+
+    return sum(npdf)
+
+
+lik = map(function, grid)
+
+lik_l = list(lik)
+print([len(lik_l), lik_l])
+
+print([max(lik_l), min(lik_l)])
+
+'''
+# Multiply (sum logs) likelihood and priors
+prod <- lik + dnorm(grid$mu, mean = 0, sd = 5, log = T) +
+dexp(grid$sigma, 1, log = T)
+'''
+# print(np.asfarray(lik_l))
+
+prod = np.asfarray(lik_l) + np.log(norm.pdf(grid[:, 0], loc=0, scale=5)) + np.log((expon.pdf(grid[:, 1], 1)))
+
+print([len(prod), prod])
+print([max(prod), min(prod)])
+
+'''
+# Standardize the lik x prior products to sum up to 1, recover unit
+prob <- exp(prod - max(prod))
+'''
+
+prob = np.exp(prod - max(prod))
+
+print(prob)
+print([max(prod), min(prod)])
+
+'''
+# Sample from posterior dist of mu and sigma, plot
+postSample <- sample(1:nrow(grid), size = 1e3, prob = prob)
+plot(grid$mu[postSample], grid$sigma[postSample],
+xlab = "Mu", ylab = "Sigma", pch = 16, col = rgb(0,0,0,.2))
+abline(v = trueMu, h = trueSig, col = "red", lty = 2)
+'''
+
+print(['sum(prob)', sum(prob)])
+
+prob /= prob.sum()
+
+'''
+TypeError: 'float' object cannot be interpreted as an integer
+
+>>> 10/5
+2.0
+>>> 10//5
+2
+>>> type(1e5)
+<class 'float'>
+>>> type(100000)
+<class 'int'>
+'''
+# postSample = np.random.choice(list(range(len(grid))), size=1e3, replace=True) # TypeError: 'float' object cannot be interpreted as an integer
+postSample = np.random.choice(list(range(len(grid))), size=1000, replace=True, p=prob)
+
+# print(postSample)
+print([max(postSample), min(postSample)])
+
+plt.title("Bayesian Statistics")
+
+grid_mu = grid[:, 0][postSample]
+grid_sigma = grid[:, 1][postSample]
+
+plt.plot(grid[:, 0][postSample], grid[:, 1][postSample], 'or', color=((0, 0, 0, .2)))  # line-width (lw)
+plt.xlabel('mu')
+plt.ylabel('sigma')
+
+plt.hlines(trueSig, min(grid_mu), max(grid_mu), colors='r', linestyles='dashed')
+plt.vlines(trueMu, min(grid_sigma), max(grid_sigma), colors='r', linestyles='dashed')
+
+# plt.plot(rangeP, prior / 15, 'r-')
+plt.show()

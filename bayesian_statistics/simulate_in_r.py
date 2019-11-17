@@ -15,6 +15,7 @@ We then give a table of deciles for the posterior distribution function and pres
 
 > d<-seq(0, 1, by=0.1)
 > data.frame(quantile(p,d))
+> mean(p);sd(p)
 '''
 pd.set_option('display.max_columns', None)
 pd.set_option('display.expand_frame_repr', False)
@@ -31,6 +32,8 @@ def quantile():
     p2 = beta(18, 4, 10000)
 
     p = p1 * p2
+
+    print(['mean, std: ', p.mean(), p.std()])
 
     return np.quantile(p, d)
 
