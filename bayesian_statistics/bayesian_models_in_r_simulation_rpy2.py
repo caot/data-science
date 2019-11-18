@@ -51,6 +51,10 @@ import numpy as np
 import pandas as pd
 import statistics
 
+'''
+$ R RHOME
+/anaconda3/lib/R
+'''
 import os
 os.environ['R_HOME'] = '/anaconda3/lib/R'
 
